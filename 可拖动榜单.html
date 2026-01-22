@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的榜单</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --danger-color: #f72585;
+            --warning-color: #f8961e;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-image: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: -1;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            font-size: 28px;
+        }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        #new-item-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        #new-item-input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(72, 149, 239, 0.2);
+        }
+        
+        button {
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        #add-item-btn {
+            background: var(--primary-color);
+        }
+        
+        #add-item-btn:hover {
+            background: var(--secondary-color);
+        }
+        
+        #rank-list {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 25px;
+        }
+        
+        #rank-list li {
+            background: white;
+            border: 1px solid #e9ecef;
+            padding: 15px 20px;
+            margin: 10px 0;
+            cursor: move;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: flex-start; /* 修改为顶部对齐 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            word-break: break-word; /* 添加自动换行 */
+        }
+        
+        #rank-list li:hover {
+            background: #f8f9fa;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        #rank-list li.dragging {
+            opacity: 0.8;
+            background: #e9f5ff;
+            border: 1px dashed var(--accent-color);
+            box-shadow: 0 5px 15px rgba(72, 149, 239, 0.3);
+        }
+        
+        #rank-list li.editing {
+            cursor: default !important;
+            background: #fff9e6;
+        }
+        
+        .rank {
+            font-weight: bold;
+            color: var(--primary-color);
+            min-width: 30px;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0; /* 防止排名数字被压缩 */
+        }
+        
+        .item-content {
+            flex: 1;
+            min-width: 0; /* 修复flex布局中的溢出问题 */
+        }
+        
+        .item-text {
+            font-size: 16px;
+            word-break: break-word; /* 自动换行 */
+            white-space: pre-wrap; /* 保留空白符但允许换行 */
+        }
+        
+        .edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            display: none;
+            box-sizing: border-box;
+            word-break: break-word; /* 输入框也支持自动换行 */
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-left: 15px;
+            flex-shrink: 0; /* 防止按钮被压缩 */
+        }
+        
+        .edit-btn, .delete-btn {
+            cursor: pointer;
+            transition: all 0.2s;
+            background: none;
+            border: none;
+            padding: 5px;
+            font-size: 18px;
+        }
+        
+        .edit-btn {
+            color: var(--warning-color);
+        }
+        
+        .delete-btn {
+            color: var(--danger-color);
+        }
+        
+        .edit-btn:hover, .delete-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        .save-btn, .cancel-btn {
+            padding: 6px 12px;
+            font-size: 14px;
+            display: none;
+            margin-left: 5px;
+        }
+        
+        .save-btn {
+            background: var(--accent-color);
+        }
+        
+        .cancel-btn {
+            background: var( --accent-color);
+        }
+        
+        .global-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .export-btn {
+            background: var(--accent-color);
+        }
+        
+        .export-btn:hover {
+            background: #3a86ff;
+        }
+        
+        #clear-storage {
+            background: var(--danger-color);
+        }
+        
+        #clear-storage:hover {
+            background: #e5176b;
+        }
+        
+        .import-btn {
+            background: #4cc9f0;
+        }
+        
+        .import-btn:hover {
+            background: #3a9fc8;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .import-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-name {
+            font-size: 14px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        /* 新增署名样式 */
+        .footer-signature {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            color: #999;
+            font-size: 20px;
+            font-style: italic;
+            z-index: 100;
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            #new-item-input {
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+            
+            button {
+                width: 100%;
+                margin-left: 0;
+            }
+            
+            #rank-list li {
+                flex-wrap: wrap;
+            }
+            
+            .action-buttons {
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-end;
+            }
+            
+            .file-name {
+                max-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 我的榜单（可拖拽排序）</h1>
+        
+        <div class="input-group">
+            <input type="text" id="new-item-input" placeholder="✏️ 输入新选项内容...">
+            <button id="add-item-btn">➕ 添加选项</button>
+        </div>
+
+        <ul id="rank-list">
+            <!-- 动态加载内容 -->
+        </ul>
+
+        <div class="global-actions">
+            <button id="export-json" class="export-btn">💾 导出JSON</button>
+            <button id="export-csv" class="export-btn">📊 导出Excel</button>
+            <button id="copy-data" class="export-btn">📋 复制到剪贴板</button>
+            <div class="import-container">
+                <button id="import-json" class="import-btn">📤 导入榜单（JSON）</button>
+                <span id="file-name" class="file-name">未选择文件</span>
+                <input type="file" id="file-input" accept=".json">
+            </div>
+            <button id="clear-storage">🗑️ 清除榜单数据</button>
+        </div>
+
+        <div class="footer-signature">made by summerapril5</div>
+    </div>
+
+    <script>
+        // 初始化元素引用
+        const list = document.getElementById('rank-list');
+        const newItemInput = document.getElementById('new-item-input');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name');
+        let draggedItem = null;
+
+        // 添加新选项
+        addItemBtn.addEventListener('click', addNewItem);
+        newItemInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addNewItem();
+        });
+
+        // 导入JSON按钮点击事件
+        document.getElementById('import-json').addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件选择变化事件
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function addNewItem() {
+            const text = newItemInput.value.trim();
+            if (text) {
+                addItemToList(text);
+                newItemInput.value = '';
+                newItemInput.focus();
+                saveRanking();
+            } else {
+                alert('请输入有效内容！');
+            }
+        }
+
+        // 添加项目到列表
+        function addItemToList(text, rank = null) {
+            const newItem = document.createElement('li');
+            newItem.setAttribute('draggable', 'true');
+            const itemRank = rank !== null ? rank : list.children.length + 1;
+            newItem.innerHTML = `
+                <span class="rank">${itemRank}</span>
+                <div class="item-content">
+                    <span class="item-text">${text}</span>
+                    <input type="text" class="edit-input" value="${text}">
+                </div>
+                <div class="action-buttons">
+                    <button class="edit-btn" title="编辑此项">✏️</button>
+                    <button class="save-btn" title="保存">💾</button>
+                    <button class="cancel-btn" title="取消">❌</button>
+                    <button class="delete-btn" title="删除此项">🗑️</button>
+                </div>
+            `;
+            list.appendChild(newItem);
+            setupDragAndDrop(newItem);
+            setupItemActions(newItem);
+            updateRanks();
+        }
+
+        // 设置拖拽事件
+        function setupDragAndDrop(item) {
+            item.addEventListener('dragstart', (e) => {
+                // 如果正在编辑，则不允许拖拽
+                if (item.classList.contains('editing')) {
+                    e.preventDefault();
+                    return;
+                }
+                draggedItem = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.target.innerHTML);
+            });
+
+            item.addEventListener('dragend', (e) => {
+                e.target.classList.remove('dragging');
+                updateRanks();
+                saveRanking();
+            });
+        }
+
+        // 设置项目操作（编辑/删除）
+        function setupItemActions(item) {
+            const editBtn = item.querySelector('.edit-btn');
+            const saveBtn = item.querySelector('.save-btn');
+            const cancelBtn = item.querySelector('.cancel-btn');
+            const deleteBtn = item.querySelector('.delete-btn');
+            const itemText = item.querySelector('.item-text');
+            const editInput = item.querySelector('.edit-input');
+            
+            // 编辑按钮点击事件
+            editBtn.addEventListener('click', () => {
+                itemText.style.display = 'none';
+                editInput.style.display = 'block';
+                editBtn.style.display = 'none';
+                saveBtn.style.display = 'inline-block';
+                cancelBtn.style.display = 'inline-block';
+                editInput.focus();
+                
+                // 编辑时禁用拖拽
+                item.setAttribute('draggable', 'false');
+                item.classList.add('editing');
+                item.style.cursor = 'default';
+            });
+            
+            // 保存按钮点击事件
+            saveBtn.addEventListener('click', () => {
+                const newText = editInput.value.trim();
+                if (newText) {
+                    itemText.textContent = newText;
+                    exitEditMode();
+                    saveRanking();
+                } else {
+                    alert('内容不能为空！');
+                }
+            });
+            
+            // 取消按钮点击事件
+            cancelBtn.addEventListener('click', exitEditMode);
+            
+            // 输入框回车保存
+            editInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveBtn.click();
+                }
+            });
+            
+            // 退出编辑模式
+            function exitEditMode() {
+                itemText.style.display = 'block';
+                editInput.style.display = 'none';
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                
+                // 退出编辑后恢复拖拽
+                item.setAttribute('draggable', 'true');
+                item.classList.remove('editing');
+                item.style.cursor = 'move';
+            }
+            
+            // 删除按钮点击事件
+            deleteBtn.addEventListener('click', () => {
+                if (confirm(`确定要删除 "${itemText.textContent}" 吗？`)) {
+                    item.remove();
+                    updateRanks();
+                    saveRanking();
+                }
+            });
+        }
+
+        // 拖拽排序逻辑
+        list.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const targetItem = e.target.closest('li');
+            if (targetItem && targetItem !== draggedItem && !targetItem.classList.contains('editing')) {
+                const rect = targetItem.getBoundingClientRect();
+                const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+                list.insertBefore(draggedItem, next ? targetItem.nextSibling : targetItem);
+            }
+        });
+
+        // 更新排名显示
+        function updateRanks() {
+            Array.from(list.children).forEach((item, index) => {
+                item.querySelector('.rank').textContent = index + 1;
+            });
+        }
+
+        // 获取当前排名数据
+        function getCurrentRanking() {
+            return Array.from(list.children).map(item => ({
+                text: item.querySelector('.item-text').textContent,
+                rank: parseInt(item.querySelector('.rank').textContent)
+            }));
+        }
+
+        // 保存榜单到localStorage
+        function saveRanking() {
+            const items = getCurrentRanking();
+            localStorage.setItem('ranking-data', JSON.stringify(items));
+        }
+
+        // 从localStorage加载榜单
+        function loadRanking() {
+            const savedData = localStorage.getItem('ranking-data');
+            
+            if (savedData) {
+                try {
+                    const items = JSON.parse(savedData);
+                    items.forEach(item => {
+                        addItemToList(item.text, item.rank);
+                    });
+                } catch (e) {
+                    localStorage.removeItem('ranking-data');
+                    initializeSampleData();
+                }
+            } else {
+                initializeSampleData();
+            }
+        }
+
+        // 初始化示例数据
+        function initializeSampleData() {
+            const sampleItems = [
+                "选项一",
+                "选项二",
+                "希望你能⭐一下，谢谢你"
+                
+            ];
+            sampleItems.forEach((item, index) => {
+                addItemToList(item, index + 1);
+            });
+            saveRanking();
+        }
+
+        // 导出JSON
+        function exportToJSON() {
+            const data = localStorage.getItem('ranking-data') || '[]';
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `榜单数据_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('JSON文件导出成功！');
+        }
+
+        // 导出CSV（解决Excel乱码问题）
+        function exportToCSV() {
+            const items = JSON.parse(localStorage.getItem('ranking-data') || '[]');
+            
+            // 添加UTF-8 BOM头并构建CSV内容
+            const header = "\uFEFF排名,内容\n";
+            const csv = header + items.map(item => {
+                // 处理内容中的特殊字符
+                const text = item.text
+                    .replace(/"/g, '""')  // 转义双引号
+                    .replace(/\r?\n/g, " "); // 替换换行符为空格
+                return `${item.rank},"${text}"`;
+            }).join('\n');
+            
+            // 创建下载链接
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `榜单排名_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+            
+            alert('Excel文件导出成功！');
+        }
+
+        // 复制榜单内容（排名:内容 格式）
+        function copyToClipboard() {
+            try {
+                const items = JSON.parse(localStorage.getItem('ranking-data') || '[]');
+                
+                // 转换为 排名:内容 格式，并按排名排序
+                const clipboardText = items
+                    .sort((a, b) => a.rank - b.rank)
+                    .map(item => `${item.rank}: ${item.text}`)
+                    .join('\n');
+                
+                // 尝试使用现代API
+                navigator.clipboard.writeText(clipboardText)
+                    .then(() => {
+                        alert('榜单已复制到剪贴板！\n\n格式：\n排名: 内容\n\n当前榜单：\n' + clipboardText);
+                    })
+                    .catch(() => {
+                        // 降级方案：使用textarea
+                        const textarea = document.createElement('textarea');
+                        textarea.value = clipboardText;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        alert('榜单已复制！\n\n格式：\n排名: 内容\n\n当前榜单：\n' + clipboardText);
+                    });
+            } catch (e) {
+                alert('复制失败：' + e.message);
+            }
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                resetFileInput();
+                return;
+            }
+        
+            fileNameDisplay.textContent = file.name;
+        
+            const reader = new FileReader();
+            reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('文件格式不正确，应该是一个数组');
+                }
+                
+                // 验证数据格式
+                const isValid = data.every(item => {
+                    return typeof item === 'object' && 
+                        'text' in item && 
+                        'rank' in item;
+                });
+                
+                if (!isValid) {
+                    throw new Error('文件格式不正确，每个项目应包含text和rank属性');
+                }
+                
+                // 确认是否覆盖现有数据
+                if (list.children.length > 0) {
+                    if (!confirm('导入JSON将覆盖当前榜单，确定要继续吗？')) {
+                        resetFileInput();
+                        return;
+                    }
+                }
+                
+                // 清空当前列表
+                while (list.firstChild) {
+                    list.removeChild(list.firstChild);
+                }
+                
+                // 添加新项目
+                data.forEach(item => {
+                    addItemToList(item.text, item.rank);
+                });
+                
+                saveRanking();
+                alert('榜单导入成功！共导入 ' + data.length + ' 个项目');
+            } catch (error) {
+                alert('导入失败: ' + error.message);
+                console.error('导入错误:', error);
+                resetFileInput();
+            }
+        };
+        
+            reader.onerror = function() {
+                alert('读取文件时出错');
+                resetFileInput();
+            };
+        
+            reader.readAsText(file);
+        }
+
+        // 添加重置文件输入的函数
+        function resetFileInput() {
+            fileInput.value = '';
+            fileNameDisplay.textContent = '未选择文件';
+        }
+
+        // 清除存储数据
+        function clearStorage() {
+            if (confirm('确定要清除所有存储的榜单数据吗？此操作不可撤销！')) {
+                localStorage.removeItem('ranking-data');
+                // 清空当前列表
+                while (list.firstChild) {
+                    list.removeChild(list.firstChild);
+                }
+                 // 重置文件输入状态
+                resetFileInput();
+                // 重新初始化示例数据
+                initializeSampleData();
+                alert('存储数据已清除，已重置为示例数据！');
+            }
+        }
+
+        // 绑定按钮事件
+        document.getElementById('export-json').addEventListener('click', exportToJSON);
+        document.getElementById('export-csv').addEventListener('click', exportToCSV);
+        document.getElementById('copy-data').addEventListener('click', copyToClipboard);
+        document.getElementById('clear-storage').addEventListener('click', clearStorage);
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', loadRanking);
+    </script>
+</body>
+</html>
